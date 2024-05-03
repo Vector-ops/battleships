@@ -65,6 +65,7 @@ func clearConsole() {
 	}
 }
 
+// draw empty map
 func drawEmptyMap(hit bool, tries int, err error) {
 	clearConsole()
 	if err != nil {
@@ -88,6 +89,7 @@ func drawEmptyMap(hit bool, tries int, err error) {
 	fmt.Println("---------------------")
 }
 
+// draw map after game ends
 func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 	clearConsole()
 	fmt.Printf("tries left: %d   hit: %t\n", tries, hit)
@@ -104,6 +106,7 @@ func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 	fmt.Println("---------------------")
 }
 
+// fill map randomly
 func fillMap(gameMap *map[Coordinates]string) {
 	// TODO: increase or decrease the number of empty slots to increase or decrese difficulty
 	ch := []string{" ", "b"}
@@ -117,6 +120,7 @@ func fillMap(gameMap *map[Coordinates]string) {
 	}
 }
 
+// accept user input and validate it
 func userInput(gameMap *map[Coordinates]string) (bool, error) {
 	xin := []string{"A", "B", "C", "D", "E"}
 
