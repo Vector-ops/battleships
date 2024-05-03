@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strconv"
 )
 
@@ -43,14 +45,15 @@ func main() {
 	fillMap(&gameMap)
 	var tries int = 5
 	var hit bool
+	drawEmptyMap(hit, tries, nil)
 	for tries > 0 {
-		drawEmptyMap(hit, tries)
-		hit, e := userInput(&gameMap)
-		if !hit && !e {
+		hit, err := userInput(&gameMap)
+		if !hit && err == nil {
 			tries--
 		}
+		drawEmptyMap(hit, tries, err)
 	}
-	if tries == 0 || tries < 0 {
+	if tries <= 0 {
 		drawMap(hit, tries, gameMap)
 	}
 }
@@ -62,9 +65,13 @@ func clearConsole() {
 	}
 }
 
-func drawEmptyMap(hit bool, tries int) {
+func drawEmptyMap(hit bool, tries int, err error) {
 	clearConsole()
-	fmt.Printf("tries left: %d   hit: %t\n", tries, hit)
+	if err != nil {
+		fmt.Printf("tries left: %d   hit: %s\n", tries, err)
+	} else {
+		fmt.Printf("tries left: %d   hit: %t\n", tries, hit)
+	}
 	fmt.Println("  A   B   C   D   E")
 	x := []string{"A", "B", "C", "D", "E"}
 	for i := range 5 {
@@ -110,31 +117,38 @@ func fillMap(gameMap *map[Coordinates]string) {
 	}
 }
 
-func userInput(gameMap *map[Coordinates]string) (bool, bool) {
+func userInput(gameMap *map[Coordinates]string) (bool, error) {
+	xin := []string{"A", "B", "C", "D", "E"}
 
 	var hit bool = false
-	var x string
-	var y int
+	coordinates := Coordinates{}
 
 	r := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Enter the coordinates in this format (A 1): ")
 	inp, _, err := r.ReadLine()
 	if err != nil {
-		fmt.Printf("Invalid coordinates.\n")
-		return false, true
+		return false, errors.New("invalid coordinates")
 	}
-	x = string(inp[0:1])
-	y, err = strconv.Atoi(string(inp[2:]))
+	coordinates.x = string(inp[0:1])
+	coordinates.y, err = strconv.Atoi(string(inp[2:]))
 	if err != nil {
-		fmt.Printf("Invalid x coordinate")
-		return false, true
+		return false, errors.New("invalid y coordinate")
 	}
 
-	fmt.Println(x, y, (*gameMap)[Coordinates{x: x, y: y}])
-	if (*gameMap)[Coordinates{x: x, y: (y - 1)}] == "b" {
-		(*gameMap)[Coordinates{x: x, y: (y - 1)}] = "*"
+	if i := sort.SearchStrings(xin, coordinates.x); i > len(xin)-1 {
+		return hit, errors.New("invalid x coordinate")
+	}
+
+	if coordinates.y > 5 {
+		return hit, errors.New("invalid y coordinate")
+	}
+
+	coordinates.y = coordinates.y - 1
+
+	if (*gameMap)[coordinates] == "b" {
+		(*gameMap)[coordinates] = "*"
 		hit = true
 	}
-	return hit, false
+	return hit, nil
 }
