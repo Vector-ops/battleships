@@ -10,18 +10,22 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sort"
 	"strconv"
 )
 
 var clear map[string]func()
 
+const debugFill = false
+const debugDraw = true
+
 type Coordinates struct {
-	x string
+	x int
 	y int
 }
 
 var gameMap map[Coordinates]string
+
+// var shipSize map[string]int
 
 func init() {
 	log.SetFlags(0)
@@ -49,8 +53,13 @@ func main() {
 	fillMap(&gameMap)
 	var tries int = 5
 	var hit bool
-	drawEmptyMap(hit, tries, nil)
-	// drawMap(hit, tries, gameMap)
+
+	if debugDraw {
+		drawMap(hit, tries, gameMap)
+	} else {
+		drawEmptyMap(hit, tries, nil)
+	}
+
 	for tries > 0 {
 		hit, err := userInput(&gameMap)
 		if !hit && err == nil {
@@ -79,10 +88,9 @@ func drawEmptyMap(hit bool, tries int, err error) {
 		fmt.Printf("tries left: %d   hit: %t\n", tries, hit)
 	}
 	fmt.Println("  A   B   C   D   E")
-	x := []string{"A", "B", "C", "D", "E"}
 	for i := range 5 {
 		fmt.Println("---------------------")
-		for _, j := range x {
+		for j := range 5 {
 			if gameMap[Coordinates{x: j, y: i}] != "b" {
 				fmt.Printf("| %s ", gameMap[Coordinates{x: j, y: i}])
 			} else {
@@ -98,12 +106,11 @@ func drawEmptyMap(hit bool, tries int, err error) {
 func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 	clearConsole()
 	fmt.Printf("tries left: %d   hit: %t\n", tries, hit)
-	x := []string{"A", "B", "C", "D", "E"}
 	fmt.Println("  A   B   C   D   E")
 
 	for i := range 5 {
 		fmt.Println("---------------------")
-		for _, j := range x {
+		for j := range 5 {
 			fmt.Printf("| %s ", gameMap[Coordinates{x: j, y: i}])
 		}
 		fmt.Printf("| %d\n", i+1)
@@ -114,16 +121,20 @@ func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 // fill map randomly
 func fillMap(gameMap *map[Coordinates]string) {
 	// TODO: increase or decrease the number of empty slots to increase or decrese difficulty
-	ch := []string{" ", "l", "s", "m"}
-	// ch := []string{" ", "b"}
-	x := []string{"A", "B", "C", "D", "E"}
+	l := 2
+	ch := []string{" ", "b"}
+
+	if debugFill {
+		ch = []string{" ", "l", "s", "m"}
+		l = 4
+	}
 	d := 0
 	count := 0
 
 	for i := range 5 {
-		for _, j := range x {
+		for j := range 5 {
 			if count < (5 - d) {
-				(*gameMap)[Coordinates{x: j, y: i}] = ch[rand.Intn(4)]
+				(*gameMap)[Coordinates{x: j, y: i}] = ch[rand.Intn(l)]
 				count++
 			}
 		}
@@ -133,7 +144,6 @@ func fillMap(gameMap *map[Coordinates]string) {
 
 // accept user input and validate it
 func userInput(gameMap *map[Coordinates]string) (bool, error) {
-	xin := []string{"A", "B", "C", "D", "E"}
 
 	var hit bool = false
 	coordinates := Coordinates{}
@@ -142,16 +152,17 @@ func userInput(gameMap *map[Coordinates]string) (bool, error) {
 
 	fmt.Println("Enter the coordinates in this format (A 1): ")
 	inp, _, err := r.ReadLine()
+
 	if err != nil {
 		return false, errors.New("invalid coordinates")
 	}
-	coordinates.x = string(inp[0:1])
+	coordinates.x = int(rune(inp[0]) - 'A')
 	coordinates.y, err = strconv.Atoi(string(inp[2:]))
 	if err != nil {
 		return false, errors.New("invalid y coordinate")
 	}
 
-	if i := sort.SearchStrings(xin, coordinates.x); i > len(xin)-1 {
+	if coordinates.x > 4 || coordinates.x < 0 {
 		return hit, errors.New("invalid x coordinate")
 	}
 
