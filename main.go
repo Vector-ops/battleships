@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -40,12 +41,16 @@ func init() {
 }
 
 func main() {
+	var diff int
+	flag.IntVar(&diff, "d", 0, "Set the difficulty of the game")
+	flag.Parse()
 	clearConsole()
 	gameMap = make(map[Coordinates]string, 25)
 	fillMap(&gameMap)
 	var tries int = 5
 	var hit bool
 	drawEmptyMap(hit, tries, nil)
+	// drawMap(hit, tries, gameMap)
 	for tries > 0 {
 		hit, err := userInput(&gameMap)
 		if !hit && err == nil {
@@ -109,14 +114,20 @@ func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 // fill map randomly
 func fillMap(gameMap *map[Coordinates]string) {
 	// TODO: increase or decrease the number of empty slots to increase or decrese difficulty
-	ch := []string{" ", "b"}
+	ch := []string{" ", "l", "s", "m"}
+	// ch := []string{" ", "b"}
 	x := []string{"A", "B", "C", "D", "E"}
+	d := 0
+	count := 0
 
 	for i := range 5 {
 		for _, j := range x {
-
-			(*gameMap)[Coordinates{x: j, y: i}] = ch[rand.Intn(2)]
+			if count < (5 - d) {
+				(*gameMap)[Coordinates{x: j, y: i}] = ch[rand.Intn(4)]
+				count++
+			}
 		}
+		count = 0
 	}
 }
 
