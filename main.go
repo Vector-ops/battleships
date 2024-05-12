@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/Vector-ops/battleships/enums"
 	"github.com/Vector-ops/battleships/types"
@@ -54,7 +55,13 @@ func main() {
 	clearConsole()
 
 	gameMap = make(types.GameMap, 25)
+	var saveFile types.SaveFile
+	saveFile.StartMap = make(types.GameMap, 25)
+	saveFile.EndMap = make(types.GameMap, 25)
+
 	fillMap(&gameMap)
+	saveFile.Time = time.Now().Format(time.RFC3339)
+	CopyMap(gameMap, &saveFile.StartMap)
 	var tries int = 5
 	var hit bool
 
@@ -82,7 +89,11 @@ func main() {
 		} else if checkWin(gameMap) {
 			fmt.Printf("You Won!\n")
 		}
+		CopyMap(gameMap, &saveFile.EndMap)
+		saveFile.TriesLeft = tries
+		saveFile.Win = checkWin(gameMap)
 	}
+	SaveMap(saveFile)
 }
 
 func clearConsole() {

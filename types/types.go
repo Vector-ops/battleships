@@ -1,8 +1,8 @@
 package types
 
 type Coordinates struct {
-	X int
-	Y int
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 
 type GameMap map[Coordinates]string
@@ -15,4 +15,12 @@ type ValidCoordinates struct {
 	StCd      Coordinates
 	EdCd      Coordinates
 	Ship      string
+}
+
+type SaveFile struct {
+	Time      string  `json:"time"`
+	StartMap  GameMap `json:"start_map"`
+	EndMap    GameMap `json:"end_map"`
+	Win       bool    `json:"win"`
+	TriesLeft int     `json:"tries_left"`
 }
