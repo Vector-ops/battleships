@@ -6,26 +6,25 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
+
+	"github.com/Vector-ops/battleships/enums"
+	"github.com/Vector-ops/battleships/types"
 )
 
 var clear map[string]func()
 
 const (
-	debugFill bool = false
-	debugDraw bool = true
+	debugFill  bool   = false
+	debugDraw  bool   = true
+	targetHit  string = "*"
+	targetMiss string = "o"
 )
 
-type Coordinates struct {
-	x int
-	y int
-}
-
-var gameMap map[Coordinates]string
+var gameMap types.GameMap
 
 func init() {
 	log.SetFlags(0)
@@ -50,7 +49,7 @@ func main() {
 	flag.Parse()
 	clearConsole()
 
-	gameMap = make(map[Coordinates]string, 25)
+	gameMap = make(types.GameMap, 25)
 	fillMap(&gameMap)
 	var tries int = 5
 	var hit bool
@@ -60,9 +59,6 @@ func main() {
 	} else {
 		drawEmptyMap(hit, tries, nil)
 	}
-	// fmt.Println(gameMap)
-	// valid := GetValidCoordinates(Large, gameMap)
-	// fmt.Println(valid)
 
 	for tries > 0 && !checkWin(gameMap) {
 		hit, err := userInput(&gameMap)
@@ -75,23 +71,11 @@ func main() {
 			drawEmptyMap(hit, tries, err)
 		}
 	}
+	drawMap(hit, tries, gameMap)
 	if tries <= 0 {
-		if debugDraw {
-			drawMap(hit, tries, gameMap)
-			fmt.Printf("You lost!\n")
-		} else {
-			drawEmptyMap(hit, tries, nil)
-			fmt.Printf("You lost!\n")
-		}
+		fmt.Printf("You lost!\n")
 	} else if checkWin(gameMap) {
-		if debugDraw {
-			drawMap(hit, tries, gameMap)
-			fmt.Printf("You Won!\n")
-		} else {
-			drawEmptyMap(hit, tries, nil)
-			fmt.Printf("You Won!\n")
-		}
-
+		fmt.Printf("You Won!\n")
 	}
 }
 
@@ -114,8 +98,8 @@ func drawEmptyMap(hit bool, tries int, err error) {
 	for i := range 5 {
 		fmt.Println("---------------------")
 		for j := range 5 {
-			if gameMap[Coordinates{x: i, y: j}] != "b" {
-				fmt.Printf("| %s ", gameMap[Coordinates{x: j, y: i}])
+			if gameMap[types.Coordinates{X: j, Y: i}] == targetHit || gameMap[types.Coordinates{X: j, Y: i}] == targetMiss {
+				fmt.Printf("| %s ", gameMap[types.Coordinates{X: j, Y: i}])
 			} else {
 				fmt.Printf("|   ")
 			}
@@ -126,7 +110,7 @@ func drawEmptyMap(hit bool, tries int, err error) {
 }
 
 // draw map after game ends
-func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
+func drawMap(hit bool, tries int, gameMap types.GameMap) {
 	clearConsole()
 	fmt.Printf("tries left: %d   hit: %t\n", tries, hit)
 	fmt.Println("  A   B   C   D   E")
@@ -134,7 +118,7 @@ func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 	for i := range 5 {
 		fmt.Println("---------------------")
 		for j := range 5 {
-			fmt.Printf("| %s ", gameMap[Coordinates{x: j, y: i}])
+			fmt.Printf("| %s ", gameMap[types.Coordinates{X: j, Y: i}])
 		}
 		fmt.Printf("| %d\n", i+1)
 	}
@@ -142,34 +126,25 @@ func drawMap(hit bool, tries int, gameMap map[Coordinates]string) {
 }
 
 // fill map randomly
-func fillMap(gameMap *map[Coordinates]string) {
-	// TODO: increase or decrease the number of empty slots to increase or decrese difficulty
-	l := 2
-	ch := []string{" ", "b"}
+func fillMap(gameMap *types.GameMap) {
 
-	if debugFill {
-		ch = []string{" ", "l", "s", "m"}
-		l = 4
-	}
-	d := 0
-	count := 0
-
+	// initialize map with " "
 	for i := range 5 {
 		for j := range 5 {
-			if count < (5 - d) {
-				(*gameMap)[Coordinates{x: i, y: j}] = ch[rand.Intn(l)]
-				count++
-			}
+			(*gameMap)[types.Coordinates{X: i, Y: j}] = " "
 		}
-		count = 0
 	}
+
+	PlaceShips(enums.Large, 1, gameMap)
+	PlaceShips(enums.Medium, 3, gameMap)
+	PlaceShips(enums.Small, 4, gameMap)
 }
 
 // accept user input and validate it
-func userInput(gameMap *map[Coordinates]string) (bool, error) {
+func userInput(gameMap *types.GameMap) (bool, error) {
 
 	var hit bool = false
-	coordinates := Coordinates{}
+	coordinates := types.Coordinates{}
 
 	r := bufio.NewReader(os.Stdin)
 
@@ -179,36 +154,38 @@ func userInput(gameMap *map[Coordinates]string) (bool, error) {
 	if err != nil {
 		return false, errors.New("invalid coordinates")
 	}
-	coordinates.x = int(rune(inp[0]) - 'A')
-	coordinates.y, err = strconv.Atoi(string(inp[2:]))
+	coordinates.X = int(rune(inp[0]) - 'A')
+	coordinates.Y, err = strconv.Atoi(string(inp[2:]))
 	if err != nil {
 		return false, errors.New("invalid y coordinate")
 	}
 
-	if coordinates.x > 4 || coordinates.x < 0 {
+	if coordinates.X > 4 || coordinates.X < 0 {
 		return hit, errors.New("invalid x coordinate")
 	}
 
-	if coordinates.y > 5 {
+	if coordinates.Y > 5 {
 		return hit, errors.New("invalid y coordinate")
 	}
 
-	coordinates.y = coordinates.y - 1
+	coordinates.Y = coordinates.Y - 1
 
-	//TODO: check for when the coord contains "*"
-	//TODO: check for win condition
-
-	if (*gameMap)[coordinates] == "b" {
-		(*gameMap)[coordinates] = "*"
+	if (*gameMap)[coordinates] != " " && (*gameMap)[coordinates] != targetHit && (*gameMap)[coordinates] != targetMiss {
+		(*gameMap)[coordinates] = targetHit
 		hit = true
+	} else if (*gameMap)[coordinates] == " " {
+		(*gameMap)[coordinates] = targetMiss
+		hit = false
+	} else if (*gameMap)[coordinates] == targetHit || (*gameMap)[coordinates] == targetMiss {
+		return hit, errors.New("coordinates already hit")
 	}
 	return hit, nil
 }
 
-func checkWin(gameMap map[Coordinates]string) bool {
+func checkWin(gameMap types.GameMap) bool {
 	for i := range 5 {
 		for j := range 5 {
-			if gameMap[Coordinates{x: i, y: j}] == "b" {
+			if gameMap[types.Coordinates{X: i, Y: j}] != " " && gameMap[types.Coordinates{X: i, Y: j}] != targetHit {
 				return false
 			}
 		}
