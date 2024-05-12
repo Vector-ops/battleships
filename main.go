@@ -18,8 +18,12 @@ import (
 var clear map[string]func()
 
 const (
-	debugFill  bool   = false
-	debugDraw  bool   = true
+	// to render ships on map during gameplay
+	debugDraw bool = false
+
+	// to stop gameplay and check the ship placements on map
+	debugMap bool = false
+
 	targetHit  string = "*"
 	targetMiss string = "o"
 )
@@ -60,22 +64,24 @@ func main() {
 		drawEmptyMap(hit, tries, nil)
 	}
 
-	for tries > 0 && !checkWin(gameMap) {
-		hit, err := userInput(&gameMap)
-		if !hit && err == nil {
-			tries--
+	if !debugMap {
+		for tries > 0 && !checkWin(gameMap) {
+			hit, err := userInput(&gameMap)
+			if !hit && err == nil {
+				tries--
+			}
+			if debugDraw {
+				drawMap(hit, tries, gameMap)
+			} else {
+				drawEmptyMap(hit, tries, err)
+			}
 		}
-		if debugDraw {
-			drawMap(hit, tries, gameMap)
-		} else {
-			drawEmptyMap(hit, tries, err)
+		drawMap(hit, tries, gameMap)
+		if tries <= 0 {
+			fmt.Printf("You lost!\n")
+		} else if checkWin(gameMap) {
+			fmt.Printf("You Won!\n")
 		}
-	}
-	drawMap(hit, tries, gameMap)
-	if tries <= 0 {
-		fmt.Printf("You lost!\n")
-	} else if checkWin(gameMap) {
-		fmt.Printf("You Won!\n")
 	}
 }
 
@@ -135,7 +141,7 @@ func fillMap(gameMap *types.GameMap) {
 		}
 	}
 
-	PlaceShips(enums.Large, 1, gameMap)
+	PlaceShips(enums.Large, 2, gameMap)
 	PlaceShips(enums.Medium, 3, gameMap)
 	PlaceShips(enums.Small, 4, gameMap)
 }
